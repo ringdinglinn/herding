@@ -2,7 +2,9 @@
 
 let flock;
 let canvas;
+//currently only one sheperd
 let sheperd;
+let sheperds = [];
 let pressedKey;
 let spaceDown = false;
 let aDown = false;
@@ -16,6 +18,7 @@ function setup() {
 
   flock = new Flock();
   sheperd = new Sheperd();
+  sheperds.push(sheperd);
   // Add an initial set of boids into the system
   for (let i = 0; i < 100; i++) {
     let b = new Boid(width / 2,height / 2);
@@ -36,6 +39,7 @@ function draw() {
   sheperd.rotate();
   sheperd.render();
   console.log(spaceDown);
+  console.log(flock.boids.length);
 }
 
 // Add a new boid into the System
@@ -79,6 +83,7 @@ function Boid(x, y) {
   this.r = 3.0;
   this.maxspeed = 3;    // Maximum speed
   this.maxforce = 0.05; // Maximum steering force
+  this.sheperddist = 0;
 }
 
 Boid.prototype.run = function(boids) {
@@ -95,14 +100,17 @@ Boid.prototype.applyForce = function(force) {
 
 // We accumulate a new acceleration each time based on three rules
 Boid.prototype.flock = function(boids) {
+  let flee = this.flee(sheperds);
   let sep = this.separate(boids);   // Separation
   let ali = this.align(boids);      // Alignment
   let coh = this.cohesion(boids);   // Cohesion
   // Arbitrarily weight these forces
-  sep.mult(1.5);
+  flee.mult(1.0);
+  sep.mult(2.0);
   ali.mult(1.0);
   coh.mult(1.0);
   // Add the force vectors to acceleration
+  this.applyForce(flee);
   this.applyForce(sep);
   this.applyForce(ali);
   this.applyForce(coh);
@@ -238,8 +246,30 @@ Boid.prototype.cohesion = function(boids) {
   }
 }
 
-Boid.prototype.flee = function(boids, sheperd) {
-
+Boid.prototype.flee = function(sheperds) {
+  let maxdist = 100.0;
+  let steer = createVector(0,0);
+  let sum = createVector(0,0);
+  let boidPos = createVector(this.position.x, this.position.y);
+  let average = 0;
+  let counter = 0;
+  for (let i = 0; i < sheperds.length; i++){
+    let sheperdPos = createVector(sheperds[i].x, sheperds[i].y);
+    let v = boidPos.sub(sheperdPos);
+    let dist = v.magSq();
+    if (dist < sq(maxdist)){
+      v.normalize();
+      v.mult(maxdist);
+      v.sub(boidPos);
+      steer.add(v);
+      average += dist;
+      counter++;
+    }
+  }
+  if (counter > 0){
+    average /= counter;
+  }
+  return steer;
 }
 
 
@@ -264,8 +294,6 @@ Sheperd.prototype.rotate = function(){
     } else {
       stop = true;
     }
-    console.log("---------");
-    console.log(this.direction);
     this.direction %= 360;
     this.direction = radians(this.direction);
   }
