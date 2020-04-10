@@ -9,7 +9,9 @@ let pressedKey;
 let spaceDown = false;
 let aDown = false;
 let dDown = false;
-
+let pause = false;
+let x1;
+let y1;
 
 
 function setup() {
@@ -18,7 +20,7 @@ function setup() {
 
   flock = new Flock();
   sheperd = new Sheperd();
-  sheperds.push(sheperd);
+  flock.addSheperd(sheperd);
   // Add an initial set of boids into the system
   for (let i = 0; i < 100; i++) {
     let b = new Boid(width / 2,height / 2);
@@ -33,13 +35,13 @@ function windowResized() {
 
 
 function draw() {
-  background(51);
-  flock.run();
-  sheperd.move();
-  sheperd.rotate();
-  sheperd.render();
-  console.log(spaceDown);
-  console.log(flock.boids.length);
+  if (!pause){
+    background(51);
+    flock.run();
+    sheperd.move();
+    sheperd.rotate();
+    sheperd.render();
+  }
 }
 
 // Add a new boid into the System
@@ -56,17 +58,22 @@ function mouseDragged() {
 
 function Flock() {
   // An array for all the boids
-  this.boids = []; // Initialize the array
+  this.boids = [];
+  this.sheperds = [];// Initialize the array
 }
 
 Flock.prototype.run = function() {
   for (let i = 0; i < this.boids.length; i++) {
-    this.boids[i].run(this.boids);  // Passing the entire list of boids to each boid individually
+    this.boids[i].run(this.boids, this.sheperds);  // Passing the entire list of boids to each boid individually
   }
 }
 
 Flock.prototype.addBoid = function(b) {
   this.boids.push(b);
+}
+
+Flock.prototype.addSheperd = function(b) {
+  this.sheperds.push(b);
 }
 
 // The Nature of Code
@@ -86,8 +93,8 @@ function Boid(x, y) {
   this.sheperddist = 0;
 }
 
-Boid.prototype.run = function(boids) {
-  this.flock(boids);
+Boid.prototype.run = function(boids, sheperds) {
+  this.flock(boids, sheperds);
   this.update();
   this.borders();
   this.render();
@@ -99,13 +106,17 @@ Boid.prototype.applyForce = function(force) {
 }
 
 // We accumulate a new acceleration each time based on three rules
-Boid.prototype.flock = function(boids) {
+Boid.prototype.flock = function(boids, sheperds) {
   let flee = this.flee(sheperds);
   let sep = this.separate(boids);   // Separation
   let ali = this.align(boids);      // Alignment
   let coh = this.cohesion(boids);   // Cohesion
   // Arbitrarily weight these forces
-  flee.mult(1.0);
+  if (flee.magSq() !== 0.0){
+    // console.log("flee = " + flee.magSq());
+    // console.log("sep = " + sep.magSq());
+  }
+  flee.mult(this.sheperddist);
   sep.mult(2.0);
   ali.mult(1.0);
   coh.mult(1.0);
@@ -247,7 +258,7 @@ Boid.prototype.cohesion = function(boids) {
 }
 
 Boid.prototype.flee = function(sheperds) {
-  let maxdist = 100.0;
+  let maxdist = 200.0;
   let steer = createVector(0,0);
   let sum = createVector(0,0);
   let boidPos = createVector(this.position.x, this.position.y);
@@ -260,15 +271,21 @@ Boid.prototype.flee = function(sheperds) {
     if (dist < sq(maxdist)){
       v.normalize();
       v.mult(maxdist);
+      let boidPos = createVector(this.position);
+      boidPos.sub(sheperdPos);
+      // console.log(boidPos.x + ", " + boidPos.y + ", " + boidPos.magSq());
       v.sub(boidPos);
       steer.add(v);
-      average += dist;
+      average += dist / maxdist;
       counter++;
     }
   }
   if (counter > 0){
     average /= counter;
+    average = maxdist - average;
   }
+  this.sheperddist = average;
+  console.log(steer.magSq());
   return steer;
 }
 
@@ -302,10 +319,12 @@ Sheperd.prototype.rotate = function(){
 Sheperd.prototype.move = function(){
   if (keyIsPressed){
     if (spaceDown){
-      x = cos(this.direction);
-      y = sin(this.direction);
+      let x = cos(this.direction);
+      let y = sin(this.direction);
       this.x += this.speed * x;
       this.y += this.speed * y;
+      x1 = this.x;
+      y1 = this.y;
     }
   }
 }
@@ -323,6 +342,9 @@ Sheperd.prototype.render = function(){
 }
 
 function keyPressed(){
+  if (keyCode === ENTER){
+    pause = !pause;
+  }
   pressedKey = key;
   if (pressedKey === " "){
     spaceDown = true;
@@ -338,7 +360,6 @@ function keyPressed(){
 }
 
 function keyReleased(){
-  console.log(spaceDown);
   if (spaceDown && pressedKey === " " || !keyIsPressed){
     spaceDown = false;
   } 
