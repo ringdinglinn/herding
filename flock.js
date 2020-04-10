@@ -5,16 +5,13 @@ let canvas;
 //currently only one sheperd
 let sheperd;
 let sheperds = [];
-let pressedKey;
-let spaceDown = false;
-let aDown = false;
-let dDown = false;
+let up, down, left, right;
 
 
 
 function setup() {
   canvas = createCanvas(windowWidth - 20, windowHeight - 100);
-  createP("a and d to rotate, space to move");
+  createP("WASD or arrow keys to move");
 
   flock = new Flock();
   sheperd = new Sheperd();
@@ -36,10 +33,8 @@ function draw() {
   background(51);
   flock.run();
   sheperd.move();
-  sheperd.rotate();
   sheperd.render();
-  console.log(spaceDown);
-  console.log(flock.boids.length);
+  // console.log(flock.boids.length);
 }
 
 // Add a new boid into the System
@@ -273,44 +268,45 @@ Boid.prototype.flee = function(sheperds) {
 }
 
 
-function Sheperd(){
+function Sheperd() {
   this.width = 20;
   this.height = 20;
   this.color = 
   this.x = windowWidth/2 - this.width/2;
   this.y = windowHeight/2 - this.height/2;
-  this.direction = 0;
-  this.speed = 4;
+  this.direction = createVector();
+  this.velocity = createVector();
+  this.speed = 3;
+  this.damping = 0.6;
 }
 
-Sheperd.prototype.rotate = function(){
-  if (keyIsPressed) {
-    this.direction = degrees(this.direction);
-    var stop = false;
-    if (aDown){
-      this.direction -= 4;
-    } else if (dDown){
-      this.direction += 4;
-    } else {
-      stop = true;
-    }
-    this.direction %= 360;
-    this.direction = radians(this.direction);
+Sheperd.prototype.move = function() {
+  if (up) {
+    this.velocity.y -= this.speed;
   }
-}
-
-Sheperd.prototype.move = function(){
-  if (keyIsPressed){
-    if (spaceDown){
-      x = cos(this.direction);
-      y = sin(this.direction);
-      this.x += this.speed * x;
-      this.y += this.speed * y;
-    }
+  if (down) {
+    this.velocity.y += this.speed;
   }
+  if (left) {
+    this.velocity.x -= this.speed;
+  }
+  if (right) {
+    this.velocity.x += this.speed;
+  }
+  
+  this.x += this.velocity.x;
+  this.y += this.velocity.y;
+  
+  this.velocity.mult(this.damping);
+
+  // add direction
 }
 
-Sheperd.prototype.render = function(){
+Sheperd.prototype.dash = function() {
+
+}
+
+Sheperd.prototype.render = function() {
   noFill();
   strokeWeight(2);
   stroke(200);
@@ -322,32 +318,33 @@ Sheperd.prototype.render = function(){
   pop();
 }
 
-function keyPressed(){
-  pressedKey = key;
-  if (pressedKey === " "){
-    spaceDown = true;
+function keyPressed() {
+  if (keyCode === 87 || keyCode === 38) {
+    up = true;
   }
-  if (pressedKey === "a"){
-    aDown = true;
-    dDown = false;
+  if (keyCode === 83 || keyCode === 40) {
+    down = true;
   }
-  if (pressedKey === "d"){
-    dDown = true;
-    aDown = false;
+  if (keyCode === 65 || keyCode === 37) {
+    left = true;
+  }
+  if (keyCode === 68 || keyCode === 39) {
+    right = true;
   }
 }
 
-function keyReleased(){
-  console.log(spaceDown);
-  if (spaceDown && pressedKey === " " || !keyIsPressed){
-    spaceDown = false;
-  } 
-  if (aDown){
-    aDown = false;
-  } 
-
-  if (dDown){
-    dDown = false;
+function keyReleased() {
+  if (keyCode === 87 || keyCode === 38) {
+    up = false;
+  }
+  if (keyCode === 83 || keyCode === 40) {
+    down = false;
+  }
+  if (keyCode === 65 || keyCode === 37) {
+    left = false;
+  }
+  if (keyCode === 68 || keyCode === 39) {
+    right = false;
   }
 }
 
