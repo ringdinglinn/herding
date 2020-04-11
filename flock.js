@@ -11,7 +11,7 @@ let up, down, left, right;
 
 function setup() {
   canvas = createCanvas(windowWidth - 20, windowHeight - 100);
-  createP("WASD or arrow keys to move");
+  createP("WASD or arrow keys to move.<br>Click to dash.");
 
   flock = new Flock();
   sheperd = new Sheperd();
@@ -38,9 +38,9 @@ function draw() {
 }
 
 // Add a new boid into the System
-function mouseDragged() {
-  flock.addBoid(new Boid(mouseX, mouseY));
-}
+// function mouseDragged() {
+//   flock.addBoid(new Boid(mouseX, mouseY));
+// }
 
 // The Nature of Code
 // Daniel Shiffman
@@ -278,7 +278,7 @@ Boid.prototype.flee = function(sheperds) {
     average = maxdist - average;
   }
   this.sheperddist = average;
-  console.log(steer.magSq());
+  // console.log(steer.magSq());
   return steer;
 }
 
@@ -289,10 +289,11 @@ function Sheperd() {
   this.color = 
   this.x = windowWidth/2 - this.width/2;
   this.y = windowHeight/2 - this.height/2;
-  this.direction = createVector();
+  this.direction;
   this.velocity = createVector();
-  this.speed = 3;
+  this.speed = 2;
   this.damping = 0.6;
+  this.dashSpeed = 40;
 }
 
 Sheperd.prototype.move = function() {
@@ -314,11 +315,12 @@ Sheperd.prototype.move = function() {
   
   this.velocity.mult(this.damping);
 
-  // add direction
+  this.direction = atan2(mouseY - this.y, mouseX - this.x);
 }
 
 Sheperd.prototype.dash = function() {
-
+  let a = this.direction;
+  this.velocity.add(cos(a) * this.dashSpeed, sin(a) * this.dashSpeed);
 }
 
 Sheperd.prototype.render = function() {
@@ -328,8 +330,8 @@ Sheperd.prototype.render = function() {
   circle(this.x,this.y, this.width);
   push();
   translate(this.x, this.y);
-  rotate(this.direction - PI/2);
-  triangle(-10,20,+10,20,0,40);
+  rotate(this.direction);
+  triangle(20, -10, 20, 10, 40, 0);
   pop();
 }
 
@@ -363,5 +365,7 @@ function keyReleased() {
   }
 }
 
-
+function mouseClicked() {
+  sheperd.dash();
+}
 
